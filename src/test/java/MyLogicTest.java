@@ -65,6 +65,24 @@ class MyLogicTest {
         assertNull(nullTuple);
     }
 
+    @Test
+    void deleteRepeatedIntegerValueTest() {
+        io.vavr.collection.Queue<Option<MyModel>> vavrQueue = createVavrQueueForTest();
+        io.vavr.collection.Queue<Option<MyModel>> queueWithoutRepeatedValue = MyLogic.deleteRepeatedIntegerValue(vavrQueue);
+        System.out.println(queueWithoutRepeatedValue.size());
+    }
+
+    @Test
+    void listAllNumberFromOneToOneHundredAndDeleteTheLastTenTest() {
+        io.vavr.collection.List<Integer> list = MyLogic.listAllNumberFromOneToOneHundredAndDeleteTheLastTen();
+
+        Integer actualSize = list.size();
+        Integer expectedSize = 90;
+
+        assertEquals(expectedSize, actualSize);
+
+    }
+
     private static List<Option<MyModel>> createMyModelList(Integer size, Integer stringLength) {
         List<Option<MyModel>> myModelListForTesting = new ArrayList<>();
         for (int i = 0; i < size; i++) {
@@ -84,5 +102,13 @@ class MyLogicTest {
         return myModelList.stream()
                 .map(m -> m.get().getSecondParam())
                 .toList();
+    }
+
+    private static io.vavr.collection.Queue<Option<MyModel>> createVavrQueueForTest() {
+        io.vavr.collection.Queue<Option<MyModel>> queueForTesting = io.vavr.collection.Queue.of(Option.of(new MyModel(1, "Ciao")),
+                Option.of(new MyModel(2, "Come")), Option.of(new MyModel(3, "Stai")), Option.of(new MyModel(3, "Io sto bene")),
+                Option.of(new MyModel(4, "Ci vediamo")), Option.of(new MyModel(4, "Dopo")), Option.of(new MyModel(5, "Allora")));
+
+        return queueForTesting;
     }
 }
