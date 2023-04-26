@@ -69,7 +69,15 @@ class MyLogicTest {
     void deleteRepeatedIntegerValueTest() {
         io.vavr.collection.Queue<Option<MyModel>> vavrQueue = createVavrQueueForTest();
         io.vavr.collection.Queue<Option<MyModel>> queueWithoutRepeatedValue = MyLogic.deleteRepeatedIntegerValue(vavrQueue);
-        System.out.println(queueWithoutRepeatedValue.size());
+
+        Integer expectedSize = 3;
+        Integer actualSize = queueWithoutRepeatedValue.size();
+        assertEquals(expectedSize, actualSize);
+
+        Integer firstParamFromFirstElementListExpected = queueWithoutRepeatedValue.get(0).get().getFirstParam();
+        Integer firstParamFromFirstElementListActual = 1;
+
+        assertEquals(firstParamFromFirstElementListExpected, firstParamFromFirstElementListActual);
     }
 
     @Test
@@ -80,6 +88,12 @@ class MyLogicTest {
         Integer expectedSize = 90;
 
         assertEquals(expectedSize, actualSize);
+
+    }
+
+    @Test
+    void groupElementInListByFirstLetterTest() {
+        io.vavr.collection.List<String> stringList = MyLogic.groupElementInListByFirstLetter();
 
     }
 

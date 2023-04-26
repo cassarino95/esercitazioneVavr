@@ -13,16 +13,13 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.*;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
+
 
 public class MyLogic {
 
     private static final BiPredicate<Integer, Integer> validateUserInputFirstParam = (userInput, index) ->
             userInput % 2 == 0 && index % 2 == 0 || userInput % 2 == 1 && index % 2 == 1;
     private static final Predicate<String> validateSecondUserInput = StringUtils::isAlphaSpace;
-
-    private static final Predicate<Integer> deleteLast10Numbers = value -> value <= 90;
-
 
 
     public static List<Option<MyModel>> createListByUserInput(Integer size) {
@@ -59,73 +56,103 @@ public class MyLogic {
     }
 
     public static io.vavr.collection.List<Option<MyModel>> createVavrListByUserInput(Integer size) {
-        return io.vavr.collection.List.ofAll(createListByUserInput(size));
+        Try<io.vavr.collection.List<Option<MyModel>>> modelList =  Try.of(() -> io.vavr.collection.List.ofAll(createListByUserInput(size)));
+        if (modelList.isSuccess()) {
+            return modelList.get();
+        }
+        return io.vavr.collection.List.of(Option.none());
+
     }
 
     public static io.vavr.collection.Queue<Option<MyModel>> createVavrQueueByUserInput(Integer size) {
-        return io.vavr.collection.Queue.ofAll(createListByUserInput(size));
+        Try<io.vavr.collection.Queue<Option<MyModel>>> myModelQueue = Try.of(()-> io.vavr.collection.Queue.ofAll(createListByUserInput(size)));
+
+        if (myModelQueue.isSuccess()) {
+            return myModelQueue.get();
+        }
+        return io.vavr.collection.Queue.of(Option.none());
     }
 
     public static io.vavr.collection.Queue<Option<MyModel>> deleteRepeatedIntegerValue(io.vavr.collection.Queue<Option<MyModel>>
                                                                                               vavrListFromUserInput) {
 
-        Set<Integer> seenValues = new HashSet<>();
-        io.vavr.collection.Queue<Option<MyModel>> outputQueue = io.vavr.collection.Queue.empty();
-        for (Option<MyModel> option : vavrListFromUserInput) {
-            if (option.isDefined()) {
-                MyModel myModel = option.get();
-                if (!seenValues.contains(myModel.getFirstParam())) {
-                    seenValues.add(myModel.getFirstParam());
-                    outputQueue = outputQueue.append(Option.of(myModel));
-                }
-            }
-        }
-        return outputQueue;
+      Set<Integer> firstParamUniqueSet = createSetOfUniqueFirstParam(vavrListFromUserInput);
+
+        io.vavr.collection.Queue<Option<MyModel>> queueWithoutRepeatedValue = vavrListFromUserInput
+                .filter(option -> option.map(MyModel::getFirstParam).exists(firstParamUniqueSet::contains));
+
+        return queueWithoutRepeatedValue;
     }
 
     public static io.vavr.collection.List<Integer> listAllNumberFromOneToOneHundredAndDeleteTheLastTen() {
 
-        List<Integer> integerList = new ArrayList<>();
-        addIntegerElementToList(integerList);
-
-        io.vavr.collection.List<Integer> vavrIntegerList = io.vavr.collection.List.ofAll(integerList);
-        return vavrIntegerList.filter(deleteLast10Numbers);
+        return io.vavr.collection.List.rangeClosed(0, 100).dropRight(10);
     }
 
     public static io.vavr.collection.List<String> groupElementInListByFirstLetter() {
-        io.vavr.collection.List<String> randomStringList = createRandomStringList(50);
+        io.vavr.collection.List<String> randomStringList = createRandomStringList(30);
 
-        Map<Character, Integer> mapForCountMostUsedLetter = createMostUsedLetterInStringList(randomStringList);
+        Character mostUsedCharacter = getMostUsedCharacter(randomStringList);
 
-        return createListWithMostUsedLetter(mapForCountMostUsedLetter, randomStringList);
+        return createListWithMostUsedLetter(mostUsedCharacter, randomStringList);
     }
 
-    private static io.vavr.collection.List<String> createListWithMostUsedLetter(Map<Character, Integer> mapForCountMostUsedLetter,
+    private static Set<Integer> createSetOfUniqueFirstParam(io.vavr.collection.Queue<Option<MyModel>> myModelList) {
+
+        Set<Integer> uniqueFirstParamSet = new HashSet<>();
+        myModelList.forEach(m -> {
+            if (!uniqueFirstParamSet.contains(m.get().getFirstParam())) {
+                uniqueFirstParamSet.add(m.get().getFirstParam());
+            } else {
+                uniqueFirstParamSet.remove(m.get().getFirstParam());
+            }
+        });
+
+        return uniqueFirstParamSet;
+    }
+
+
+
+    private static io.vavr.collection.List<String> createListWithMostUsedLetter(Character mostUsedCharacter,
                                                                                 io.vavr.collection.List<String> randomStringList) {
-        Integer maxValue =  mapForCountMostUsedLetter.values().stream()
+
+        return randomStringList.filter(s -> s.startsWith(mostUsedCharacter.toString()))
+                .toList();
+    }
+
+
+    private static Character getMostUsedCharacter(io.vavr.collection.List<String> randomStringList) {
+        Map<Character, Integer> mapForCountingUsedLetter = getInitialLetterAndTheirUsageMap(randomStringList);
+
+        Integer maxValue = getMaxValueFromMap(mapForCountingUsedLetter);
+
+        return getMostUsedCharacter(mapForCountingUsedLetter, maxValue);
+
+    }
+
+    private static Character getMostUsedCharacter(Map<Character, Integer> mapForCountingUsedLetter, Integer maxValue) {
+        return mapForCountingUsedLetter.entrySet().stream()
+                .filter(e -> e.getValue() == maxValue)
+                .map(Map.Entry::getKey)
+                .sorted()
+                .findFirst().get();
+    }
+
+    private static Integer getMaxValueFromMap(Map<Character, Integer> mapForCountingUsedLetter) {
+        List<Integer> valuesList = mapForCountingUsedLetter.values().stream().toList();
+        Integer maxValue = valuesList.stream()
                 .mapToInt(v -> v)
                 .max().getAsInt();
-
-        List<Character> mostUsedLetter = mapForCountMostUsedLetter.entrySet()
-                .stream()
-                .filter(e -> e.getValue().equals(maxValue))
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
-
-        return randomStringList.filter(s -> mostUsedLetter.stream()
-                        .anyMatch(c -> s.startsWith(c.toString())))
-                .toList();
-
+        return maxValue;
     }
 
-
-    private static Map<Character, Integer> createMostUsedLetterInStringList(io.vavr.collection.List<String> randomStringList) {
+    private static Map<Character, Integer> getInitialLetterAndTheirUsageMap(io.vavr.collection.List<String> randomStringList) {
         Map<Character, Integer> mapForCountingUsedLetter = new HashMap<>();
         randomStringList.forEach(m -> {
             if (!mapForCountingUsedLetter.containsKey(m.charAt(0))) {
                 mapForCountingUsedLetter.put(m.charAt(0), 1);
             } else {
-                mapForCountingUsedLetter.replace(m.charAt(0), mapForCountingUsedLetter.get(m.charAt(0) + 1));
+                mapForCountingUsedLetter.replace(m.charAt(0), mapForCountingUsedLetter.get(m.charAt(0)), mapForCountingUsedLetter.get(m.charAt(0)) + 1);
             }
         });
         return mapForCountingUsedLetter;
@@ -145,12 +172,6 @@ public class MyLogic {
         int max = 10;
         int randomNumber = (int)(Math.random() * ((max - min) + 1)) + min;
         return randomNumber;
-    }
-
-    private static void addIntegerElementToList(List<Integer> integerList) {
-        for (int i = 1; i <= 100; i++) {
-            integerList.add(i);
-        }
     }
 
     private static Double getAverageSecondParam(List<String> secondParamList) {
